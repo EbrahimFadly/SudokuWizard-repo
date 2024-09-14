@@ -15,7 +15,10 @@ typedef struct Board
     int boxes[9][9];
 }Board;
 
-void print_sudoku_board(Board* board);
+void print_board(Board* board);
+bool solve_backtracking(Board* board);
+bool solve_Branch_And_Bound(Board board);
+bool board_isvalid(Board* board);
 
 int main(int argc, char *argv[])
 {
@@ -49,11 +52,10 @@ int main(int argc, char *argv[])
     int row = 0;
     Board board;
 
-    // --------------------------------------------------------------------------------------
     while (fgets(line, sizeof(line), file) && row < 9) {
         char* token = strtok(line, ",");
         int col = 0;
-        
+
         while (token != NULL && col < 9) {
             int value = atoi(token);
 
@@ -72,12 +74,119 @@ int main(int argc, char *argv[])
     }
     fclose(file);
 
-    print_sudoku_board(&board);
+
+
+
+
+    bool isvalid = board_isvalid(&board);
+    if (isvalid)
+    {
+        bool solved = solve_backtracking(&board);
+        if (!solved)
+        {
+            printf("board is unsolvable\n");
+        }
+        print_board(&board);
+    }else{
+        printf("board is invalid\n");
+    }
+    
     return 0;
 }
 
+bool solve_backtracking(Board* board){
+    int row = 0;
+    while (row < 9)
+    {
+        int col = 0;
+        while (col < 9)
+        {
+            int value = board->rows[row][col];
+            if (value == 0)
+            {
+                int box_index = (row / 3) * 3 + (col / 3);
+                int box_pos = (row % 3) * 3 + (col % 3);
+                for (int j = 1; j <= 9; j++)
+                {
+                    bool valid = true;
 
-void print_sudoku_board(Board* board) {
+                    // Check the row if j is valid
+                    for (int i = 0; i < 9; i++) {
+                        if (board->rows[row][i] == j) {
+                            valid = false;
+                            break;
+                        }
+                    }
+                    // Check the column if j is valid
+                    for (int i = 0; i < 9; i++) {
+                        if (board->columns[col][i] == j) {
+                            valid = false;
+                            break;
+                        }
+                    }
+                    // Check the box if j is valid
+                    for (int i = 0; i < 9; i++) {
+                        if (board->boxes[box_index][i] == j) {
+                            valid = false;
+                            break;
+                        }
+                    }
+
+                    if (valid) {
+                        board->rows[row][col] = j;
+                        board->columns[col][row] = j;
+                        board->boxes[box_index][box_pos] = j;
+
+                        // solving the rest of the board
+                        if (solve_backtracking(board)) {
+                            return true;
+                        }
+
+                        // backtracking 
+                        board->rows[row][col] = 0;
+                        board->columns[col][row] = 0;
+                        board->boxes[box_index][box_pos] = 0;
+                    }
+                }
+                return false;
+            }
+            col++;
+        }
+        row++;
+    }
+    return true;
+}
+
+bool board_isvalid(Board* board){
+    int row = 0;
+    while (row < 9)
+    {
+        int col = 0;
+        while (col < 9)
+        {
+            int value = board->rows[row][col];
+            int box_index = (row / 3) * 3 + (col / 3);
+            int box_pos = (row % 3) * 3 + (col % 3);
+            if (value != 0)
+            {
+                for (int i = 0; i < 9; i++) {
+                    if (i != col && board->rows[row][i] == value) return false;
+                }
+                for (int i = 0; i < 9; i++) {
+                    if (i != row && board->columns[col][i] == value) return false;
+                }
+                for (int i = 0; i < 9; i++) {
+                    if (i != box_pos && board->boxes[box_index][i] == value) return false;
+                }
+            }
+            col++;
+        }
+        row++;
+    }
+    return true;
+}
+
+void print_board(Board* board) {
     printf("Sudoku Board:\n");
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 9; j++) {
